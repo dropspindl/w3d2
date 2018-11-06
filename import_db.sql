@@ -81,5 +81,11 @@ VALUES
   (1, null, 2, 'What do you need help with?'),
   (2, 1, 2, 'Press the Power Button'),
   (1, 1, 1, 'I can''t turn on the computer');
+  
+INSERT INTO
+  question_likes('user_id', 'question_id')
+VALUES
+  (1, 1),
+  (2, 1);
 
 

@@ -72,6 +72,10 @@ class Users
     QuestionFollows.followed_questions_for_user_id(self.id)
   end
   
+  def liked_questions 
+    QuestionLikes.liked_questions_for_user_id(self.id)
+  end 
+  
 end
 
 
@@ -137,6 +141,14 @@ class Questions
   def followers
     QuestionFollows.followers_for_question_id(self.id)
   end
+  
+  def likers 
+    QuestionLikes.likers_for_question_id(self.id)
+  end 
+  
+  def num_likes 
+    QuestionLikes.num_likes_for_question_id(self.id)
+  end 
   
 end 
 
@@ -324,13 +336,7 @@ end
 
 class QuestionLikes
   attr_accessor :id, :user_id, :question_id
-  
-  def initialize(options)
-    @id = options['id']
-    @question_id = options['question_id']
-    @user_id = options['user_id']
-  end 
-  
+
   def self.find_by_id(id)
     question_like = QuestionsDBConnection.instance.execute(<<-SQL, id)
       SELECT
@@ -344,6 +350,59 @@ class QuestionLikes
 
     QuestionLikes.new(question_like.first)
   end
+  
+  def self.likers_for_question_id(q_id)
+    question_likers = QuestionsDBConnection.instance.execute(<<-SQL, q_id)
+      SELECT
+        user_id
+      FROM
+        question_likes
+      WHERE
+        question_id = ?
+    SQL
+    
+    question_likers.map do |liker_hash|
+      Users.find_by_id(liker_hash['user_id'])
+    end
+  end
+  
+  def self.num_likes_for_question_id(q_id)
+    num_likes = QuestionsDBConnection.instance.execute(<<-SQL, q_id)
+      SELECT
+        COUNT(*) AS 'count'
+      FROM
+        question_likes
+      WHERE
+        question_id = ?
+      GROUP BY question_id
+    SQL
+    return 0 if num_likes.empty?
+    num_likes.first['count']
+    
+  end
+  
+  def self.liked_questions_for_user_id(u_id)
+    num_likes = QuestionsDBConnection.instance.execute(<<-SQL, u_id)
+      SELECT
+        *
+      FROM
+        question_likes
+      WHERE
+        user_id = ?
+      GROUP BY question_id
+    SQL
+    return nil if num_likes.empty?
+    num_likes.map do |liked_hash| 
+      Questions.find_by_id(liked_hash['question_id'])
+    end 
+    
+  end
+  
+  def initialize(options)
+    @id = options['id']
+    @question_id = options['question_id']
+    @user_id = options['user_id']
+  end 
 end
   
 
