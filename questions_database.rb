@@ -14,13 +14,30 @@ end
 
 
 
+class ModelBase 
+  def self.find_by_id(id, table)
+    foundthing = QuestionsDBConnection.instance.execute(<<-SQL, table, id)
+      SELECT
+        *
+      FROM
+        ?
+      WHERE
+        id = ?
+    SQL
+    return nil if foundthing.empty?
 
+    table.new(user.first)
+    
+    
+    
+  end 
+end 
 
 class Users
   attr_accessor :id, :fname, :lname
   
   def self.all
-    data = QuestionsDBConnection.instance.execute("SELECT * FROM questions")
+    data = QuestionsDBConnection.instance.execute("SELECT * FROM users")
     data.map { |datum| Users.new(datum) }
   end
   
@@ -76,6 +93,41 @@ class Users
     QuestionLikes.liked_questions_for_user_id(self.id)
   end 
   
+  def average_karma
+    count = 0
+    questions_array = Questions.find_by_author_id(self.id)
+    questions_array.each do |question|
+      count += question.num_likes 
+    end
+    length = questions_array.length
+    count / length
+  end
+  
+  def save
+    id = Users.find_by_id(self.id)
+    
+    if id.nil?
+      QuestionsDBConnection.instance.execute(<<-SQL, self.fname, self.lname)
+        INSERT INTO
+          users (fname, lname)
+        VALUES
+          (?, ?)
+      SQL
+      self.id = QuestionsDBConnection.instance.last_insert_row_id
+      self
+    else
+      QuestionsDBConnection.instance.execute(<<-SQL, self.fname, self.lname, self.id)
+        UPDATE
+          users
+        SET
+          fname = ?, lname = ?
+        WHERE
+          id = ?
+      SQL
+      self
+    end
+    
+  end
 end
 
 
@@ -120,6 +172,10 @@ class Questions
       results << Questions.new(question_hash)
     end
     results
+  end
+  
+  def self.most_liked(n)
+    QuestionLikes.most_liked_questions(n)
   end
 
   
@@ -394,7 +450,23 @@ class QuestionLikes
     return nil if num_likes.empty?
     num_likes.map do |liked_hash| 
       Questions.find_by_id(liked_hash['question_id'])
-    end 
+    end   
+  end
+  
+  def self.most_liked_questions(n)
+    most_likes = QuestionsDBConnection.instance.execute(<<-SQL, n)
+      SELECT
+        *
+      FROM
+        question_likes
+      GROUP BY question_id
+      ORDER BY COUNT(*) DESC
+      LIMIT ?
+    SQL
+    return nil if most_likes.empty?
+    most_likes.map do |liked_hash|
+      Questions.find_by_id(liked_hash['question_id'])
+    end
     
   end
   
