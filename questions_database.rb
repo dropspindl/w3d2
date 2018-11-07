@@ -15,25 +15,23 @@ end
 
 
 class ModelBase 
-  def self.find_by_id(id, table)
-    foundthing = QuestionsDBConnection.instance.execute(<<-SQL, table, id)
+  def self.find_by_id(id)
+    table = self.to_s.downcase #users, string
+  
+    foundthing = QuestionsDBConnection.instance.execute(<<-SQL, id)
       SELECT
         *
       FROM
-        ?
+        #{table}
       WHERE
         id = ?
     SQL
     return nil if foundthing.empty?
-
-    table.new(user.first)
-    
-    
-    
+    self.new(foundthing.first)
   end 
 end 
 
-class Users
+class Users < ModelBase
   attr_accessor :id, :fname, :lname
   
   def self.all
@@ -47,19 +45,6 @@ class Users
     @lname = options['lname']
   end 
   
-  def self.find_by_id(id)
-    user = QuestionsDBConnection.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        users
-      WHERE
-        id = ?
-    SQL
-    return nil if user.empty?
-
-    Users.new(user.first)
-  end
   
   def self.find_by_name(fname, lname)
     user = QuestionsDBConnection.instance.execute(<<-SQL, fname, lname)
@@ -133,26 +118,12 @@ end
 
 
 
-class Questions
+class Questions < ModelBase
   attr_accessor :id, :title, :body, :author
 
   def self.all
     data = QuestionsDBConnection.instance.execute("SELECT * FROM questions")
     data.map { |datum| Questions.new(datum) }
-  end
-
-  def self.find_by_id(id)
-    question = QuestionsDBConnection.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        questions
-      WHERE
-        id = ?
-    SQL
-    return nil if question.empty?
-
-    Questions.new(question.first)
   end
   
   
@@ -211,26 +182,12 @@ end
 
 
 
-class QuestionFollows 
+class QuestionFollows < ModelBase
   attr_accessor :id, :question_id, :followers
   
   def self.all
     data = QuestionsDBConnection.instance.execute("SELECT * FROM question_follows")
     data.map { |datum| QuestionFollows.new(datum) }    
-  end
-  
-  def self.find_by_id(id)
-    question_follow = QuestionsDBConnection.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        question_follows
-      WHERE
-        id = ?
-    SQL
-    return nil if question_follow.empty?
-
-    QuestionFollows.new(question_follow.first)
   end
   
   def self.followers_for_question_id(q_id)
@@ -297,22 +254,8 @@ end
 
 
 
-class Replies
+class Replies < ModelBase
   attr_accessor :id, :question_id, :parent, :user_id, :body
-  
-  def self.find_by_id(id)
-    reply = QuestionsDBConnection.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        replies
-      WHERE
-        id = ?
-    SQL
-    return nil if reply.empty?
-
-    Replies.new(reply.first)
-  end
   
   def self.find_by_user_id(user_id)
     reply_array = QuestionsDBConnection.instance.execute(<<-SQL, user_id)
@@ -390,22 +333,8 @@ end
 
 
 
-class QuestionLikes
+class QuestionLikes < ModelBase
   attr_accessor :id, :user_id, :question_id
-
-  def self.find_by_id(id)
-    question_like = QuestionsDBConnection.instance.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        question_likes
-      WHERE
-        id = ?
-    SQL
-    return nil if question_like.empty?
-
-    QuestionLikes.new(question_like.first)
-  end
   
   def self.likers_for_question_id(q_id)
     question_likers = QuestionsDBConnection.instance.execute(<<-SQL, q_id)
